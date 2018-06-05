@@ -1,0 +1,126 @@
+<template>
+	<list id="chapter-menu" class="menu {{state}}"  >
+		<block for="{{(index, value) in list_data}}" >
+			<list-item if="index==0" class="menu-title" type="menu-title" >
+				<text>{{value.name}}</text>
+			</list-item>
+			<block if="index!=0" >
+				<list-item if="{{value.chapterId==active_chapter_id}}" class="menu-item menu-active" type="common"  >
+					<text class="menu-text" >{{value.name}}</text>
+				</list-item>	
+				<list-item if="{{value.chapterId!=active_chapter_id}}" class="menu-item" type="common" onClick="changeChapter(value.chapterId)" >
+					<text class="menu-text" >{{value.name}}</text>
+				</list-item>
+			</block>
+		</block>
+	</list>
+</template>
+
+<style>
+
+	.menu {
+		position: fixed;
+		left: 0;
+		top: 0;
+		height: 100%;
+		width: 600px;
+		/* background-color: #fff; */
+		border-right-width: 1px;
+		border-color: #e5e5e5;
+		background-color: #fff;
+	}
+	.menu-title {
+		padding: 0 25px;
+		height: 120px;
+	}
+
+	.menu-title text {
+		lines: 1;
+		text-overflow: ellipsis;
+		text-align: center;
+		font-size: 40px;
+		font-weight: bold;
+		line-height: 120px;
+		width: 100%;
+	}
+
+	.menu-item {
+		padding: 0 25px;
+		height: 100px;
+		border-top-color: #AFEEEE;
+		border-top-width: 1px;
+	}
+
+	.menu-item text {
+		lines: 1;
+		text-overflow: ellipsis;
+		font-size: 30px;
+		line-height: 100px;
+	}
+	.menu-active text {
+		color: #DAA520;
+	}
+
+	@keyframes showMenu {
+		from { transform: translateX(-600px); }
+		to { transform: translateX(0px); }
+	}
+
+	@keyframes hideMenu {
+		from { transform: translateX(0px); }
+		to { transform: translateX(-600px); }
+	}
+
+	.showen {
+		transform: translateX(0px);
+	}
+
+	.hidden {
+		transform: translateX(-600px);
+	}
+
+	.show {
+		animation-name: showMenu;
+		animation-duration: .4s;
+		animation-iteration-count: 1;
+		animation-fill-mode: forwards;
+	}
+
+	.hide {
+		animation-name: hideMenu;
+		animation-duration: .4s;
+		animation-iteration-count: 1;
+		animation-fill-mode: forwards;
+	}
+
+</style>
+
+<script>
+	export default {
+		props: [
+			'list_data',				//列表数据
+			'active_chapter_id',		//当前章节id
+			'state'						//列表状态 'show' 'hide' 'showen' 'hidden'
+		],
+		
+		changeChapter(chapterId) {
+			console.log('change chapter: ', chapterId);
+			this.hide();
+			this.$dispatch('changeChapter', chapterId);
+		},
+
+		onInit() {
+			console.log('chapterMenu init!');
+		},
+
+		show() {
+			if(this.state == 'hide' || this.state == 'hidden')
+				this.state = 'show';
+		},
+
+		hide() {
+			if(this.state == 'show' || this.state == 'showen')
+				this.state = 'hide';
+		}
+	}
+</script>

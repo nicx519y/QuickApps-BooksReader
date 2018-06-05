@@ -1,0 +1,158 @@
+<template>
+	<refresh id="refresh" refreshing="{{refreshing}}" class="container"  onrefresh="refresh" >
+		<list id="list" class="book-list" >
+			<block for="{{book in bookList}}" >
+				<list-item type="book" class="book-item" onclick="itemClickHandler(book.bookId, book.name)" >
+					<div class="cover-wrap" >
+						<image class="book-cover" src="{{book.cover}}" alt="{{book.name}}" ></image>
+					</div>
+					<div class="text-wrap" >
+						<text class="book-name" >{{book.name}}</text>
+						<text class="book-chapterName" >{{book.chapterName}}</text>
+						<text class="book-process" >{{book.process}}</text>
+					</div>
+				</list-item>
+				<!-- <list-item type="info" class="text-wrap" >
+						<text class="book-name" >{{info.name}}</text>
+						<text class="book-chapterName" >{{info.chapterName}}</text>
+						<text class="book-process" >{{info.process}}</text>
+				</list-item> -->
+			</block>
+
+		</list>
+
+		
+	</refresh>
+</template>
+
+<style>
+	
+
+	.container {
+		border-top-color: #cccccc;
+		border-top-width: 1px;
+		flex-direction: column;
+	}
+
+
+	.book-list {
+		flex-wrap: wrap;
+		columns: 3;
+		padding: 30px;
+	}
+
+	.info-list {
+		position: fixed;
+	}
+
+	.book-item {
+		flex-direction: column;
+		flex-wrap: wrap;
+		padding-top: 20px;
+		padding-bottom: 20px;
+	}
+
+	.text-wrap {
+		width: 230px;
+		flex-direction: column;
+		padding: 5px 32px 0 32px;
+	}
+
+	.cover-wrap {
+		justify-content: center;
+	}
+
+	.book-name {
+		font-size: 25px;
+		line-height: 32px;
+		text-overflow: ellipsis;
+		lines: 1;
+	}
+
+	.book-chapterName {
+		font-size: 20px;
+		line-height: 25px;
+		text-overflow: ellipsis;
+		lines: 1;
+	}
+
+	.book-process {
+		font-size: 20px;
+		line-height: 25px;
+		lines: 1;
+	}
+
+	.book-cover {
+		width: 230px;
+		height: 230px;
+		resize-mode: contain;
+	}
+
+</style>
+
+<script>
+
+	import router from '@system.router';
+	import storage from '@system.storage';
+
+	export default {
+		private: {
+			bookList: [],
+			refreshing: true,
+			itemClickHandler(bookId, bookName) {
+				console.log('open book: ', bookId);
+				this.$app.openChapterPage(bookId, bookName);
+			},
+		},
+
+		onReady() {
+			this.refresh();
+		},
+		//按返回的时候，添加桌面图标
+		onBackPress() {
+			console.log('back on press.');
+			let time = new Date().getTime();
+			let d = 24*60*60*1000; //1天
+			// let d = 0;
+			console.log(this.$app.$data.installedCheckedDate);
+			if(time - this.$app.$data.installedCheckedDate >= d) {
+				this.$app.$data.installedCheckedDate = new Date().getTime();
+				this.$app.shortcutInstall();
+				return true;
+			} else {
+				return false;
+			}
+		},
+
+		onMenuPress() {
+			this.$app.shortcutInstall();
+		},
+
+		refresh() {
+			this.refreshing = true;
+			this.$app.fetchBookList()
+				.then(result => {
+					this.bookList = result;
+					this.infoInit();
+					this.refreshing = false;
+				});
+			
+		},
+
+		infoInit() {
+			let bl = this.bookList;
+			let his = this.$app.getHistory();
+			for(let i = 0; i < bl.length; i ++) {
+				let book = bl[i];
+				if(typeof his[book['bookId']] === 'object') {
+					let bookHis = his[book['bookId']];
+					bl[i]['chapterName'] = bookHis['chapterName'] == '' || !bookHis['chapterName'] ? '未开始' : bookHis['chapterName'];
+					bl[i]['process'] = bookHis['paragraphTotal'] > 0 ? Math.round(bookHis['paragraphIndex'] / bookHis['paragraphTotal'] * 100) + '%' : '0%';
+				} else {
+					bl[i]['chapterName'] = '未开始';
+					bl[i]['process'] = '0%';
+				}
+			}
+		}
+	}
+</script>

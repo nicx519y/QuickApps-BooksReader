@@ -1,0 +1,61 @@
+{
+	"package": "com.app.bookreader",
+	"name": "金庸小说全集",
+	"versionName": "1.0.2",
+	"versionCode": "2",
+	"minPlatformVersion": "101",
+	"icon": "/Common/logo.png",
+	"features": [
+		{ "name": "system.prompt" },
+		{ "name": "system.router" },
+		{ "name": "system.shortcut" },
+		{ "name": "system.fetch" },
+		{ "name": "system.storage" },
+		{ "name": "system.battery" }
+	],
+	"permissions": [
+		{ "origin": "*" }
+	],
+	"config": {
+		"logLevel": "debug",
+		"data": {
+			"isReady": false,
+			"installedCheckedDate": 0,
+			"history": {},
+			"setting": {
+				"fontSizeIndex": 1,
+				"colorMode": 0
+			}
+		}
+	},
+	"router": {
+		"entry": "BookList",
+			"pages": {
+			"BookList": {
+				"component": "index"
+			},
+			"BookDetail": {
+				"component": "index"
+			}
+		}
+	},
+	"display": {
+		"titleBar": true,
+		"titleBarBackgroundColor": "#ffffff",
+		"titleBarTextColor": "#333333",
+		"backgroundColor": "#ffffff",
+		"fullScreen": false,
+		"menu": true,
+		"pages": {
+			"BookList": {
+				"titleBarText": "金庸小说全集",
+				"menu": true
+			},
+			"BookDetail": {
+				"titleBar": false,
+				"menu": false,
+				"fullScreen": true
+			}
+		}
+	}
+}

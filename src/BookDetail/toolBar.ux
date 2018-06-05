@@ -1,0 +1,319 @@
+<template>
+	<div class="tool-bar {{state}}"  >
+		<div class="chapter-tool" >
+			<div class="prev-chapter" onClick="prevChapter()" >
+				<text>上一章</text>
+			</div>
+			<div class="chapter-name" >
+				<text>{{getChapterName()}}</text>
+			</div>
+			<div class="next-chapter" onClick="nextChapter()" >
+				<text>下一章</text>
+			</div>
+		</div>
+		<div class="read-tool" >
+			<div class="chapter-list" onClick="showMenu()" >
+				<text>目录</text>
+			</div>
+			<div class="font-size" >
+				<div class="btn small-size" onClick="fontSizeSmaller()" >
+					<text>Aa-</text>
+				</div>
+				<div class=" size-number" >
+					<text>{{getFontSizeName()}}</text>	
+				</div>
+				<div class="btn large-size" onClick="fontSizeLarger()" >
+					<text>Aa+</text>
+				</div>
+			</div>
+			<div class="color-mode"  >
+				<switch id="mode-switch" checked="{{colorMode==1}}" onchange="changeColorMode" ></switch>
+				<text  >夜间</text>
+			</div>
+		</div>
+	</div>
+</template>
+
+<style>
+	
+
+	.tool-bar {
+		position: fixed;
+		flex-direction: column;
+		padding: 0;
+		bottom: 0;
+		left: 0;
+		height: 300px;
+		width: 100%;
+		background-color: rgba(0, 0, 0, 0.8);
+
+	}
+
+	.tool-bar text {
+		color: #e5e5e5;
+	}
+
+	.read-tool {
+		flex-direction: row;
+		padding: 30px 20px;
+	}
+
+	.read-tool text {
+		flex-grow: 1;
+		text-align: center;
+	}
+
+	.read-tool slider {
+		flex-grow: 1;
+		text-align: center;
+		width: 300px;
+	}
+
+	.read-tool switch {
+		flex-grow: 1;
+		text-align: center;
+	}
+
+	.read-tool text {
+		font-size: 35px;
+		line-height: 58px;
+	}
+
+	.chapter-list {
+		width: 200px;
+	}
+
+	.font-size {
+		flex-direction: row;
+		width: 300px;
+		padding: 0 5px;
+	}
+
+	.font-size text {
+		flex-grow: 1;
+		text-align: center;
+	}
+
+	.small-size {
+		width: 100px;
+	}
+
+	.large-size {
+		width: 100px;
+	}
+
+	.size-number {
+		width: 100px;
+	}
+
+	.color-mode {
+		width: 200px;
+		padding: 0 15px;
+	}
+
+	.color-mode switch {
+		padding: 0;
+	}
+
+	.color-mode text {
+		text-align: right;
+		font-size: 20px;
+	}
+
+	.chapter-tool {
+		padding: 20px;
+		flex-direction: row;
+		/* border-bottom-width: 1px;
+		border-bottom-color: #5F9EA0; */
+		text-overflow: ellipsis;
+	}
+
+	.chapter-tool text {
+		flex-grow: 1;
+		lines: 1;
+		font-size: 28px;
+		line-height: 60px;
+		text-align: center;
+	}
+
+	.prev-chapter {
+		width: 200px;
+	}
+
+
+	.next-chapter {
+		width: 200px;
+	}
+
+	.chapter-name {
+		width: 550px;
+	}
+
+	@keyframes showMenu {
+		from { transform: translateY(300px); }
+		to { transform: translateY(0px); }
+	}
+
+	@keyframes hideMenu {
+		from { transform: translateY(0px); }
+		to { transform: translateY(300px); }
+	}
+
+	.showen {
+		transform: translateY(0px);
+	}
+
+	.hidden {
+		transform: translateY(300px);
+	}
+
+	.show {
+		animation-name: showMenu;
+		animation-duration: .4s;
+		animation-iteration-count: 1;
+		animation-fill-mode: forwards;
+	}
+
+	.hide {
+		animation-name: hideMenu;
+		animation-duration: .4s;
+		animation-iteration-count: 1;
+		animation-fill-mode: forwards;
+	}
+
+	.btn {
+		border: 1px solid #e5e5e5;
+		border-radius: 10px;
+		padding: 10px 20px;
+	}
+
+	.btn text {
+		font-size: 30px;
+	}
+
+</style>
+
+<script>
+	export default {
+		props: [
+			'chapter_id',			
+			'chapter_list',
+			'state',
+		],
+
+		data: {
+			fontSizeConfig: [
+				{ fontSize: 32, lineHeight: 70 },
+				{ fontSize: 40, lineHeight: 86 },
+				{ fontSize: 45, lineHeight: 105 },
+			],
+			fontSizeIndex: 1,
+			colorConfig: [
+				{ backgroundColor: '#FFE4C4', color: '#333333' },
+				{ backgroundColor: '#333333', color: '#999999' },
+			],
+			colorMode: 0,
+		},
+
+		onInit() {
+			this.fontSizeIndex = this.$app.$data.setting.fontSizeIndex;
+			this.colorMode = this.$app.$data.setting.colorMode;
+		},
+
+		onReady() {
+
+		},
+
+		onDestroy() {
+			this.$app.$data.setting.fontSizeIndex = this.fontSizeIndex;
+			this.$app.$data.setting.colorMode = this.colorMode;
+		},
+
+		getChapterName() {
+			return this.$app.getChapterNameById(this['chapter_id'], this['chapter_list']);
+		},
+
+		nextChapter() {
+			this.$dispatch('changeChapter', this.pnChapter(true));
+		},
+
+		prevChapter() {
+			this.$dispatch('changeChapter', this.pnChapter(false));
+		},
+
+		/**
+		 * 上一章下一章
+		 */
+		pnChapter(isNext) {
+			let id = this['chapter_id'];
+			let menu = this['chapter_list'];
+			let index = -1;
+			for(let i = 0; i < menu.length; i ++) {
+				if(menu[i]['chapterId'] === id) {
+					index = i;
+					break;
+				}
+			}
+			if(isNext) {
+				if(index < menu.length - 1) {
+					index ++;
+					id = menu[index]['chapterId'];
+				}
+			} else {
+				if(index > 1) {
+					index --;
+					id = menu[index]['chapterId'];
+				}
+			}
+			return id;
+		},
+
+		getFontSizeName() {
+			return this.fontSizeConfig[this.fontSizeIndex]['fontSize'];
+		},
+
+		fontSizeLarger() {
+			if(this.fontSizeIndex < this.fontSizeConfig.length - 1) {
+				this.fontSizeIndex ++;
+				this.$dispatch('changeFontSize', this.fontSizeConfig[this.fontSizeIndex]);
+			}
+		},
+
+		fontSizeSmaller() {
+			if(this.fontSizeIndex > 0) {
+				this.fontSizeIndex --;
+				this.$dispatch('changeFontSize', this.fontSizeConfig[this.fontSizeIndex]);
+			}
+		},
+
+		getFontSizeConfig() {
+			return this.fontSizeConfig[this.fontSizeIndex];
+		},
+
+		changeColorMode(evt) {
+			if(evt.checked) {
+				this.colorMode = 1;
+			} else {
+				this.colorMode = 0;
+			}
+			this.$dispatch('changeColorMode', this.getColorConfig())
+		},
+
+		getColorConfig() {
+			return this.colorConfig[this.colorMode];
+		},
+
+		showMenu() {
+			this.state = 'hide';
+			this.$dispatch('openChapterMenu');
+		},
+
+		changeState() {
+			if(this.state === 'hide' || this.state === 'hidden') {
+				this.state = 'show';
+			} else {
+				this.state = 'hide';
+			}
+		},
+	}
+</script>

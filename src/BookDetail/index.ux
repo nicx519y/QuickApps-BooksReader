@@ -1,0 +1,335 @@
+<import src="./chapterMenu" ></import>
+<import src="./tip" ></import>
+<import src="./toolBar" ></import>
+<import src="./battery" ></import>
+
+<template>
+	<div class="detail" style="background-color:{{backgroundColor}}"  >
+		<!-- <text>haha</text> -->
+		<list id="content-container" class="content-container" show="{{contentIsShow}}" onScroll="resetProcess" onscrolltop="scrollTop" onscrollBottom="scrollBottom"   >
+			<block for="{{ (index, value) in showContent }}" >
+				<list-item type="{{'content_' + index}}" ondisappear="itemDisappear(index)" onappear="itemAppear(index)" >
+					<text if="index==0" class="title-text" style="color:{{color}}" >
+						{{ value }}
+					</text>
+					<text onClick="contentClick()" if="index>0" style="font-size:{{fontSize}}; line-height:{{lineHeight}}; color:{{color}};" >
+						{{ '        ' + value }}
+					</text>
+				</list-item>
+			</block>
+		</list>
+		
+		<div id="title" class="title" show="{{titleIsShow}}" >
+			<text class="book-name" style="color:{{color}}" >{{bookName}}</text>
+			<text class="book-title" style="color:{{color}}" >{{showTitle}}</text>
+		</div>
+		<div class="footer" >
+			<div class="process" >
+				<text style="color:{{color}}" >{{process}}</text>
+			</div>
+			<div class="battery" >
+				<battery color="{{color}}" ></battery>
+			</div>
+		</div>
+		
+		<chapterMenu id="menu" list_data="{{menuData}}" active_chapter_id="{{activeChapterId}}" state="hidden" ></chapterMenu>
+
+		<toolBar id="toolbar" state="hidden" chapter_id={{activeChapterId}} chapter_list={{menuData}} ></toolBar>
+		
+		<tip id="tip" state="hidden" text="" ></tip>
+
+		<progress id="loading" class="loading" type="circular" show="{{loadingIsShow}}" ></progress>
+	</div>
+</template>
+
+<style>
+	.content-container {
+		flex-direction: column;
+		padding: 60px 50px;
+	}
+
+	.title {
+		flex-direction: row;
+		position: fixed;
+		top:0;
+		left:0;
+		padding: 0 50px;
+		height: 60px;
+	}
+	.title text {
+		lines: 1;
+		font-size: 22px;
+		line-height: 60px;
+		text-overflow: ellipsis;
+	}
+
+	.book-name {
+		width: 350px;
+		text-align: left;
+	}
+
+	.book-title {
+		width: 350px;
+		text-align: right;
+	}
+
+	.footer {
+		position: fixed;
+		flex-direction: row;
+		bottom: 0;
+		right:0;
+		height: 60px;
+		padding: 0 50px;
+	}
+	.footer text {
+		lines: 1;
+		font-size: 22px;
+		line-height: 60px;
+		text-align: right;
+	}
+	.process {
+		width: 500px;
+	}
+
+	.battery {
+		/* width: 250px; */
+	}
+
+
+	.loading {
+		width: 48px;
+		height: 48px;
+		position: fixed;
+		top: 550px;
+		left: 351px;
+	}
+
+	.content-text {
+		font-size:40px;
+		line-height: 86px;
+	}
+	.title-text {
+		font-size: 60px;
+		line-height: 80px;
+		font-weight: bold;
+		margin-bottom: 100px;
+	}
+	
+</style>
+
+<script>
+	import router from '@system.router';
+
+	export default {
+
+		protected: {
+			bookId: -1,
+			bookName: '',
+			chapterId: -1,
+		},
+
+		private: {
+			activeChapterId: -1,
+			chapterContent: [],
+			showTitle: '',
+			process: '',
+			showContent: [],
+			initParagraphIndex: 0,
+			currentParagraphIndex: 0,
+			menuData: [],
+			contentIsShow: false,
+			loadingIsShow: true,
+			titleIsShow: false,
+			fontSize:0,
+			lineHeight:0,
+			backgroundColor: '',
+			color: '',
+		},
+
+		onInit() {
+
+		},
+
+		onReady() {
+			this.$child('toolbar').$on('changeChapter', evt => this.changeChapter(evt.detail));
+			this.$child('toolbar').$on('changeFontSize', evt => this.changeFontSize(evt.detail));
+			this.$child('toolbar').$on('changeColorMode', evt => this.changeColorMode(evt.detail));
+			this.$child('toolbar').$on('openChapterMenu', evt => this.showMenu());
+			this.$child('menu').$on('changeChapter', evt => this.changeChapter(evt.detail));
+			this.changeFontSize(
+				this.$child('toolbar').getFontSizeConfig()
+			);
+			this.changeColorMode(
+				this.$child('toolbar').getColorConfig()
+			);
+			this.initPage();
+		},
+
+		onDestroy() {
+			//回写缓存
+			this.$app.setHistory(this.bookId, {
+				chapterId: this.activeChapterId,
+				chapterName: this.$app.getChapterNameById(this.activeChapterId, this.menuData),
+				paragraphIndex: this.currentParagraphIndex,
+				paragraphTotal: this.showContent.length,
+			});
+		},
+
+		initPage() {
+
+			this.$app.initChapters(this.bookId).then(result => { 
+				let chapters = result['chapters'];
+				this.menuData = result['chapters'];
+				if(this.chapterId === undefined || this.chapterId < 0 || !this.isInChapters(this.chapterId, chapters)) {
+					let history = this.$app.getHistory();
+					let bh = history[this.bookId.toString()];
+					if(bh && typeof bh === 'object' && bh['chapterId'] > 0) {
+						this.chapterId = bh['chapterId'];
+						this.activeChapterId = bh['chapterId'];
+						this.initParagraphIndex = parseInt(bh['paragraphIndex']);
+					} else {
+						this.chapterId = chapters[1]['chapterId'];
+						this.activeChapterId = this.chapterId;
+						this.initParagraphIndex = 0;
+					}
+					this.initContent();
+				} else {
+					this.activeChapterId = this.chapterId;
+					this.initParagraphIndex = 0;
+					this.initContent();
+				}
+			}).catch(e => console.log(e));
+
+		},
+
+		initContent() {
+			console.log('init content: chapterId = ' + this.chapterId);
+			return new Promise((resolve, reject) => {
+				this.$app.initChapterContent(this.bookId, this.chapterId)
+					.then(result => {
+						let c = result.content.slice(0);
+						this.chapterContent = result.content.slice(0);
+						this.showTitle = this.chapterContent[0];
+						this.showContent = c;
+						this.activeChapterId = result.chapterId;
+
+						this.scrollToCacheParagraph();
+
+						resolve();
+					})
+					.catch(e => reject(e));
+			});
+		},
+
+		scrollToCacheParagraph() {
+			if(this.initParagraphIndex > 0) {
+				setTimeout(() => {
+					this.$element('content-container').scrollTo({
+						index: this.initParagraphIndex
+					});
+					this.currentParagraphIndex = this.initParagraphIndex;
+					this.contentIsShow = true;
+					this.loadingIsShow = false;
+					this.titleIsShow = true;
+					this.resetProcess();
+					this.$child('tip').run('已经为您切换到上次的段落');
+				}, 500);
+			} else {
+				setTimeout(() => {
+					this.$element('content-container').scrollTo({
+						index: this.initParagraphIndex
+					});
+					this.contentIsShow = true;
+					this.loadingIsShow = false;
+					this.titleIsShow = false;
+					this.resetProcess();
+				}, 500);
+			}
+		},
+
+		changeChapter(chapterId) {
+			console.log('change chapter: ', JSON.stringify(chapterId));
+			// this.$app.replaceChapterPage(this.bookId, chapterId);
+			this.activeChapterId = this.chapterId = chapterId;
+			this.initParagraphIndex = 0;
+			this.currentParagraphIndex = 0;
+			this.loadingIsShow = true;
+			this.contentIsShow = false;
+			this.titleIsShow = false;
+			this.initContent();
+		},
+
+		changeFontSize(config) {
+			this.fontSize = config.fontSize + 'px';
+			this.lineHeight = config.lineHeight + 'px';
+		},
+
+		changeColorMode(config) {
+			this.backgroundColor = config.backgroundColor;
+			this.color = config.color;
+		},
+
+		showMenu() {
+			this.$child('menu').show();
+		},
+
+		hideMenu() {
+			this.$child('menu').hide();
+		},
+
+		contentTextValue(value, index) {
+			if(index === 0) {
+				return value;
+			} else {
+				return '        ' + value;
+			}
+		},
+
+		isInChapters(chapterId, chapters) {
+			for(let i in chapters) {
+				if(chapters[i]['chapterId'] === chapterId)
+					return true;
+			}
+			return false;
+		},
+		
+		itemDisappear(index) {
+			if(this.contentIsShow) {
+				this.currentParagraphIndex = index + 1;
+			}
+
+			if(index === 0) {
+				this.titleIsShow = true;
+			}
+		},
+
+		itemAppear(index) {
+			if(index === 0) {
+				this.titleIsShow = false;
+			}
+		},
+
+		resetProcess() {
+			this.process = Math.round(this.currentParagraphIndex / this.chapterContent.length * 100) + '%';
+		},
+
+		contentClick() {
+			if(this.$child('menu').state == 'show' || this.$child('menu').state == 'showen') {
+				this.hideMenu();
+			} else {
+				this.$child('toolbar').changeState();
+			}
+		},
+
+		scrollTop() {
+			this.currentParagraphIndex = 0;
+			this.resetProcess();
+		},
+
+		scrollBottom() {
+			this.currentParagraphIndex = this.showContent.length - 1;
+			this.resetProcess();
+		}
+
+	}
+</script>
